@@ -1,0 +1,199 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Road Fatalities 2016</title>
+    <style>
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+
+        .dot {
+            stroke: #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- A HTML Dropdown list -->
+    <select>
+        <option value="">AUS</option>
+        <option value="ACT">ACT</option>
+        <option value="NSW">NSW</option>
+        <option value="VIC">VIC</option>
+        <option value="SA">SA</option>
+        <option value="NT">NT</option>
+        <option value="QLD">QLD</option>
+        <option value="TAS">TAS</option>
+        <option value="WA">WA</option>
+    </select>
+
+    <!-- D3 JavaScript link -->
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+
+    <!-- custom D3 code -->
+    <script>
+
+        var selectedState = ''; // all states by default
+
+        // margins for graph (note here we are not using a chart group)
+        var margin = { top: 20, right: 20, bottom: 30, left: 40 },
+            width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+
+        // declare the linear x and y scales
+        var xScale = d3.scaleLinear()
+            .range([0, width]);
+
+        var yScale = d3.scaleLinear()
+            .range([height, 0]);
+
+        // use a colour scheme from the D3 library
+        //https://github.com/d3/d3-scale/blob/master/README.md#schemeCategory10
+        var color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // append the SVG element to the document
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+        // call the function that builds the graph and pass the '' empty string
+        buildPlot(selectedState);
+
+        // This is an "event listener" that will fire when the DropDownList option is changed
+        // it will then pass the selected value of the DropDownList to the buildPlot function
+        // ie buildPlot('VIC'); or buildPlot('SA') etc
+        d3.select("select").on("change", function () {
+            buildPlot(this.value);
+        });
+
+
+        // A variable to hold the relevant CSV data (eg, data for SA and not for all of Australia)
+        var dataArray = [];
+
+        // the buildPlot function that gets the relevant data and builds the graph
+        function buildPlot(selectedState) {
+
+            // get data from CSV file in same folder
+            d3.csv("Fatalities2016.csv", function (error, data) {
+
+                if (error) {
+                    alert("failed to load data");
+                }
+
+                // empty any current data in the array
+                dataArray = [];
+
+                // if the selected state is not empty,
+                // go through each row in the data
+                // if the state of the csv data row matches the selected state
+                // add it to the dataArray (ie, add crash stat objects to the array)
+                if (selectedState != '') {
+                    data.forEach(function (d) {
+                        if (d.State == selectedState) {
+                            dataArray.push({ Age: +d.Age, crashes_per_age: +d.crashes_per_age });
+                            //console.log(d.State)
+                        }
+                    });
+                } // end if selectedState
+
+                // otherwise if there is no selected state.
+                // add all csv rows to the data array
+                else {
+
+                    data.forEach(function (d) {
+                        dataArray.push({ Age: +d.Age, crashes_per_age: +d.crashes_per_age });
+                        //console.log(d.State)
+                    })
+                } // end else no selected state
+
+
+                // debug to show the number of objects in the array
+                //alert(dataArray.length);
+                ///////////////////////////////////////////////////////////////////
+
+                // calculate the new scales
+                // nice rounds the values (optional)
+                xScale.domain(d3.extent(dataArray, function (d) { return d.Age; })).nice();
+                yScale.domain(d3.extent(dataArray, function (d) { return d.crashes_per_age; })).nice();
+
+                // select all circles (with class dot) in the SVG
+                // load the data
+                var dots = svg.selectAll(".dot").data(dataArray);
+
+                // select dataArray values that currently have no dots/circles
+                // and append the new circles.  Style them
+                dots.enter()
+                    .append("circle")
+                    .attr("class", "dot")
+                    .attr("r", 3.5)
+                    .attr("cx", function (d) { return xScale(d.Age); })
+                    .attr("cy", function (d) { return yScale(d.crashes_per_age); })
+                    .style("fill", function (d) { return color(d.Age); });
+
+                // if the previous graph had more dots/circles
+                // remove them
+                dots.exit()
+                    .transition()
+                    .duration(1000)
+                    .delay(function (d, i) { return i * 500; })
+                    .style('fill-opacity', 0)
+                    .remove()
+
+                // update
+                dots.attr("cx", function (d) { return xScale(d.Age); })
+                    .attr("cy", function (d) { return yScale(d.crashes_per_age); })
+                    .style("fill", function (d) { return color(d.Age); });
+
+                // remove old axes if present
+                // note both x and y axis had the same CSS class "axis" so this will select both
+                d3.selectAll('.axis').remove();
+
+                // Create new axes for the data range calculated from the xScale and yScale
+                // Declare the axes here but don't make them yet!
+                var xAxis = d3.axisBottom(xScale); // declare the axis generator
+                var yAxis = d3.axisLeft(yScale);
+
+                // create x axis title
+                svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .append("text")
+                    .attr("class", "label")
+                    .attr("x", width)
+                    .attr("y", +25)
+                    .style("text-anchor", "end")
+                    .text("Age (years)");
+
+                // create y axis title
+                svg.append("g")
+                    .attr("class", "y axis")
+                    .append("text")
+                    .attr("class", "label")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 6)
+                    .attr("dy", ".71em")
+                    .style("text-anchor", "end")
+                    .text("Number of crashes")
+
+                // append the new axes
+                svg.append('g')
+                    .attr('transform', 'translate(0,' + height + ')')
+                    .classed('axis x', true)
+                    .call(xAxis)
+
+                svg.append('g')
+                    .classed('axis y', true)
+                    .call(yAxis)
+            }); // end load csv data
+        } // end buildPlot function
+
+    </script>
+</body>
+</html>

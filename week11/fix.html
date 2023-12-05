@@ -1,0 +1,215 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power Outages Graph</title>
+    <style>
+        #graphData {
+            position: relative;
+        }
+
+        #graphContainer {
+            margin-left: 40px; /* provide space for the y-axis year title */
+        }
+
+
+        .y-axis {
+            position: absolute;
+            top: 30%;
+            text-align: center;
+            left: 1%;
+            transform: translateX(-50%) rotate(-90deg);
+            white-space: nowrap;
+        }
+
+        .x-axis {
+            text-align: center;
+        }
+
+        .axis-year {
+            float: left;
+            margin-right: 10px;
+        }
+
+
+        div.bar-group, div.bar-group * {
+            box-sizing: border-box;
+        }
+
+        .bar-group {
+            height: 60px;
+            line-height: 60px;
+            margin: 10px auto;
+            clear: left;
+        }
+
+
+        .bar {
+            float: left;
+            border: 1px solid #666;
+            text-align: right;
+        }
+
+            .bar [data-event] {
+                float: left;
+                height: 60px
+            }
+
+        .bar-group .outer-span {
+            margin-left: 10px;
+        }
+
+
+        ul {
+            list-style: none;
+            margin-left: 40px;
+            text-align: center;
+        }
+
+            ul li {
+                /* make list elements fall inline as block elements */
+                position: relative;
+                display: inline-block;
+                /* next two lines only for display purposes */
+                text-align: left;
+                line-height: 20px;
+                height: 20px;
+                margin: 5px;
+            }
+
+                ul li .description {
+                    display: inline-block;
+                    width: 250px;
+                    line-height: 20px;
+                    vertical-align: top;
+                    margin-left: 5px;
+                }
+
+                ul li span[data-event] {
+                    display: inline-block;
+                    height: 20px;
+                    width: 20px;
+                    border: 1px solid black;
+                }
+
+        figcaption {
+            width: 90%;
+            margin: 10px auto;
+        }
+
+            figcaption p {
+                clear: both;
+            }
+    </style>
+</head>
+
+<body>
+    <figure id="graphData">
+        <h2 style="text-align:center">Power Outages</h2>
+        <div class="y-axis"><h3>Year</h3></div>
+        <div id="graphContainer">
+            <div class="bar-group" title="2012: 616,001">
+                <div class="axis-year">2012</div>
+                <div class="bar" style="width: 34.1496%;">
+                    <div data-event="equipmentfailure" title="Equipment: 410 events" style="width: 47.0723%;"></div>
+                    <div data-event="environmental" title="Environment: 355 events" style="width: 40.7577%;"></div>
+                    <div data-event="thirdparty" title="Third Party: 61 events" style="width: 7.00344%;"></div>
+                    <div data-event="escavation" title="Dig Event: 9 events" style="width: 1.0333%;"></div>
+                    <div data-event="lightning" title="Lighting: 7 events" style="width: 0.803674%;"></div>
+                    <div data-event="operational" title="Operational: 21 events" style="width: 2.41102%;"></div>
+                    <div data-event="customerdamage" title="Customer Event: 6 events" style="width: 0.688863%;"></div>
+                    <div data-event="vandalism" title="Vandalism: 2 events" style="width: 0.229621%;"></div>
+                    <div data-event="directed" title="Directed: 0 events" style="width: 0%;"></div>
+                </div>
+                <span class="outer-span">616,001</span>
+
+            </div>
+            <div class="bar-group" title="2013: 1,395,259">
+                <div class="axis-year">2013</div>
+                <div class="bar" style="width: 90%;">
+                    <div data-event="equipmentfailure" title="Equipment: 919 events" style="width: 45.45%;"></div>
+                    <div data-event="environmental" title="Environment: 891 events" style="width: 44.0653%;"></div>
+                    <div data-event="thirdparty" title="Third Party: 130 events" style="width: 6.42928%;"></div>
+                    <div data-event="escavation" title="Dig Event: 15 events" style="width: 0.74184%;"></div>
+                    <div data-event="lightning" title="Lighting: 21 events" style="width: 1.03858%;"></div>
+                    <div data-event="operational" title="Operational: 30 events" style="width: 1.48368%;"></div>
+                    <div data-event="customerdamage" title="Customer Event: 9 events" style="width: 0.445104%;"></div>
+                    <div data-event="vandalism" title="Vandalism: 3 events" style="width: 0.148368%;"></div>
+                    <div data-event="directed" title="Directed: 4 events" style="width: 0.197824%;"></div>
+                </div>
+                <span class="outer-span">1,395,259</span>
+            </div>
+            <div class="bar-group" title="2014: 1,061,121">
+                <div class="axis-year">2014</div>
+                <div class="bar" style="width: 66.0519%;">
+                    <div data-event="equipmentfailure" title="Equipment: 737 events" style="width: 47.9194%;"></div>
+                    <div data-event="environmental" title="Environment: 592 events" style="width: 38.4915%;"></div>
+                    <div data-event="thirdparty" title="Third Party: 104 events" style="width: 6.76203%;"></div>
+                    <div data-event="escavation" title="Dig Event: 17 events" style="width: 1.10533%;"></div>
+                    <div data-event="lightning" title="Lighting: 52 events" style="width: 3.38101%;"></div>
+                    <div data-event="operational" title="Operational: 23 events" style="width: 1.49545%;"></div>
+                    <div data-event="customerdamage" title="Customer Event: 3 events" style="width: 0.195059%;"></div>
+                    <div data-event="vandalism" title="Vandalism: 4 events" style="width: 0.260078%;"></div>
+                    <div data-event="directed" title="Directed: 5 events" style="width: 0.325098%;"></div>
+                </div>
+                <span class="outer-span">1,061,121</span>
+            </div>
+            <div class="bar-group" title="2015: 1,160,586">
+                <div class="axis-year">2015</div>
+                <div class="bar" style="width: 78.1807%;">
+                    <div data-event="equipmentfailure" title="Equipment: 841 events" style="width: 50.5713%;"></div>
+                    <div data-event="environmental" title="Environment: 626 events" style="width: 37.6428%;"></div>
+                    <div data-event="thirdparty" title="Third Party: 117 events" style="width: 7.03548%;"></div>
+                    <div data-event="escavation" title="Dig Event: 18 events" style="width: 1.08238%;"></div>
+                    <div data-event="lightning" title="Lighting: 27 events" style="width: 1.62357%;"></div>
+                    <div data-event="operational" title="Operational: 20 events" style="width: 1.20265%;"></div>
+                    <div data-event="customerdamage" title="Customer Event: 8 events" style="width: 0.481058%;"></div>
+                    <div data-event="vandalism" title="Vandalism: 4 events" style="width: 0.240529%;"></div>
+                    <div data-event="directed" title="Directed: 2 events" style="width: 0.120265%;"></div>
+                </div>
+                <span class="outer-span">1,160,586</span>
+            </div>
+            <div class="bar-group" title="2016: 732,285">
+                <div class="axis-year">2016</div>
+                <div class="bar" style="width: 42.4838%;">
+                    <div data-event="equipmentfailure" title="Equipment: 593 events" style="width: 50.8576%;"></div>
+                    <div data-event="environmental" title="Environment: 446 events" style="width: 38.2504%;"></div>
+                    <div data-event="thirdparty" title="Third Party: 88 events" style="width: 7.54717%;"></div>
+                    <div data-event="escavation" title="Dig Event: 10 events" style="width: 0.857633%;"></div>
+                    <div data-event="lightning" title="Lighting: 6 events" style="width: 0.51458%;"></div>
+                    <div data-event="operational" title="Operational: 17 events" style="width: 1.45798%;"></div>
+                    <div data-event="customerdamage" title="Customer Event: 5 events" style="width: 0.428816%;"></div>
+                    <div data-event="vandalism" title="Vandalism: 0 events" style="width: 0%;"></div>
+                    <div data-event="directed" title="Directed: 1 event" style="width: 0.0857633%;"></div>
+                </div>
+                <span class="outer-span">732,285</span>
+            </div>
+
+        </div>
+        <div class="x-axis"><h3>Total Customers Effected</h3></div>
+        <figcaption>
+            <ul class="legend">
+                <li><span data-event="equipmentfailure"></span><span class="description">Equipment</span></li>
+                <li><span data-event="environmental"></span><span class="description">Environment</span></li>
+                <li><span data-event="thirdparty"></span><span class="description">Third Party</span></li>
+                <li><span data-event="escavation"></span><span class="description">Dig Event</span></li>
+                <li><span data-event="lightning"></span><span class="description">Lightning</span></li>
+                <li><span data-event="operational"></span><span class="description">Operational</span></li>
+                <li><span data-event="customerdamage"></span><span class="description">Customer Event</span></li>
+                <li><span data-event="vandalism"></span><span class="description">Vandalism</span></li>
+                <li><span data-event="directed"></span><span class="description">Directed</span></li>
+            </ul>
+            <p><b>Figure 1.1:</b>
+                Information about past interruptions to power supply in certain areas.
+
+                The information does not include planned maintenance work or urgent emergency work that sometimes requires power to be cut off to allow crews to work safely.
+
+                It only includes interruptions affecting 50 or more customers or for blackouts that last longer than five minutes. It also includes details of the average duration of the outage, a potential cause of the interruption and is segmented by Local Government Area.
+
+                Data via Ausgrid website is in CSV. Reporting is from July 2012 to June 2015
+            </p>
+        </figcaption>
+    </figure>
+</body>

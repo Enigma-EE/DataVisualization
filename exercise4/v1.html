@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>NOAA Climate Data Visualization</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <style>
+        /* Add your CSS styling here */
+        .world {
+            fill: #ccc;
+            stroke: #333;
+            stroke-width: 0.5;
+        }
+        .heat-point {
+            fill-opacity: 0.7; /* Adjust the opacity to visualize overlap */
+        }
+            /* Additional styles for tooltip and legend */
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: auto;
+            height: auto;
+            padding: 6px;
+            font: 12px sans-serif;
+            background: white;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+            opacity: 0;
+        }
+        .legend {
+            font-family: sans-serif;
+            font-size: 10px;
+        }
+        .label {
+            fill: #000;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Define the width and height for the map
+        var width = 960, height = 500;
+
+        // Create a map projection
+        var projection = d3.geoNaturalEarth1()
+            .scale(width / 2 / Math.PI)
+            .translate([width / 2, height / 2]);
+
+        // Create a path generator
+        var path = d3.geoPath()
+            .projection(projection);
+
+        // Append SVG element to the body
+        var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Define the path for the local world GeoJSON file
+        var worldGeoJSONPath = 'custom.geo.json'; // Make sure this is the correct path to your GeoJSON file
+        
+
+        // Load and display the base world map
+        d3.json(worldGeoJSONPath).then(function(world) {
+            svg.selectAll(".country")
+                .data(world.features)
+                .enter().append("path")
+                .attr("class", "country")
+                .attr("d", path);
+        });
+
+        // Load the JSON data
+        d3.json('output.json').then(function(data) {
+        // Create an array of unique hours that have data
+        var hoursWithData = [...new Set(data.map(d => {
+            var date = new Date(d.time);
+            return date.getUTCHours();
+        }))].sort((a, b) => a - b);
+
+        // Define scales for color and radius based on the data
+        var colorScale = d3.scaleSequential(d3.interpolateCool)
+            .domain(d3.extent(data, function(d) { return +d.surface_upward_latent_heat_flux; }));
+
+        var radiusScale = d3.scaleSqrt()
+            .domain(d3.extent(data, function(d) { return +d.surface_upward_sensible_heat_flux; }))
+            .range([2, 10]); // Adjust the range based on your dataset
+
+        // Function to update visualization based on the selected time
+        function updateVisualization(selectedHour) {
+            // Filter data based on the hour
+            var timeFilteredData = data.filter(function(d) {
+                var dataTime = new Date(d.time);
+                return dataTime.getUTCHours() == selectedHour;
+            });
+
+        }
+
+            // Define your updateVisualization function using this data
+            function updateVisualization(selectedHour) {
+                var timeFilteredData = data.filter(function(d) {
+                    var dataTime = new Date(d.time);
+                    return dataTime.getUTCHours() == selectedHour;
+                });
+
+                // Update the data points on the map
+                var circles = svg.selectAll("circle")
+                    .data(timeFilteredData, function(d) { return d.lat + d.lon; }); // Key function for object constancy
+
+                circles.enter().append("circle")
+                    .attr("cx", function(d) { return projection([d.lon, d.lat])[0]; })
+                    .attr("cy", function(d) { return projection([d.lon, d.lat])[1]; })
+                    .attr("fill", function(d) { return colorScale(d.surface_upward_latent_heat_flux); })
+                    .attr("r", function(d) { return radiusScale(d.surface_upward_sensible_heat_flux); });
+
+                circles.transition().duration(500)
+                    .attr("cx", function(d) { return projection([d.lon, d.lat])[0]; })
+                    .attr("cy", function(d) { return projection([d.lon, d.lat])[1]; })
+                    .attr("fill", function(d) { return colorScale(d.surface_upward_latent_heat_flux); })
+                    .attr("r", function(d) { return radiusScale(d.surface_upward_sensible_heat_flux); });
+
+                circles.exit().remove();
+            }
+
+            // Add a time slider
+            d3.select("body").append("input")
+                .attr("type", "range")
+                .attr("min", "0")
+                .attr("max", "23") // Assuming we have data for every hour of a day
+                .attr("step", "1")
+                .on("input", function() {
+                    var hour = this.value;
+                    // Update the visualization based on the selected hour
+                    updateVisualization(hour);
+
+
+            
+            // Add tooltip functionality
+            svg.selectAll("circle")
+                .on("mouseover", function(event, d) {
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    tooltip.html("Time: " + d.time + "<br/>" +
+                                 "Latent Heat Flux: " + d.surface_upward_latent_heat_flux + "<br/>" +
+                                 "Sensible Heat Flux: " + d.surface_upward_sensible_heat_flux)
+                        .style("left", (event.pageX) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", function(d) {
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+            });
+
+            // Function to draw color legend
+            function drawColorLegend() {
+                var legendWidth = 300, legendHeight = 20, margin = 10;
+
+                var legendSvg = svg.append("g")
+                    .attr("class", "legend")
+                    .attr("transform", "translate(" + margin + "," + (height - margin - legendHeight) + ")");
+
+                var defs = legendSvg.append("defs");
+                var linearGradient = defs.append("linearGradient")
+                    .attr("id", "linear-gradient");
+
+                // Define the gradient colors
+                linearGradient.selectAll("stop")
+                    .data(colorScale.ticks().map((t, i, n) => ({ offset: `${100*i/n.length}%`, color: colorScale(t) })))
+                    .enter().append("stop")
+                    .attr("offset", d => d.offset)
+                    .attr("stop-color", d => d.color);
+
+                legendSvg.append("rect")
+                    .attr("width", legendWidth)
+                    .attr("height", legendHeight)
+                    .style("fill", "url(#linear-gradient)");
+
+                // Add legend axis
+                var legendScale = d3.scaleLinear()
+                    .domain(colorScale.domain())
+                    .range([0, legendWidth]);
+
+                var legendAxis = d3.axisBottom(legendScale)
+                    .ticks(5);
+
+                legendSvg.append("g")
+                    .attr("class", "legend-axis")
+                    .attr("transform", "translate(0," + legendHeight + ")")
+                    .call(legendAxis);
+            }
+
+
+            // Call this function after the slider definition
+            drawColorLegend();
+
+
+            // Remove any existing sliders
+            d3.select("body").selectAll("input[type=range]").remove();
+
+            
+            // Call updateVisualization initially
+            updateVisualization(d3.min(hoursWithData));
+        });
+    </script>
+</body>
+</html>

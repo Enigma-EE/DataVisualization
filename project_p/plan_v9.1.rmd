@@ -1,0 +1,761 @@
+---
+title: |
+  | INFS 5116 DATA VISUALISATION SP5 2023
+  | Visualisation Project Plan
+  |
+  |
+  | Visualizing and Classifying Mushroom Edibility: A Dual Approach Using Data Visualization and Machine Learning
+author: "Enna huahy057@mymail.unisa.edu.au "
+output:
+  pdf_document: default
+  html_document:
+    theme: spacelab
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+---
+
+
+
+
+```{r echo = FALSE, include=FALSE}
+# clear all variables, functions, etc
+# clean up memory
+rm(list=ls())
+# clean up memory
+gc()
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  fig.width = 8, 
+  fig.asp = 0.618, 
+  out.width = "80%",
+  fig.align = "center", 
+  root.dir = "../",
+  message = FALSE,
+  size = "small"
+)
+```
+
+
+```{r warning=FALSE, include=FALSE}
+pacman::p_load(tidyverse, gglm)
+pacman::p_load(knitr,dplyr,AICcmodavg)
+pacman::p_load(inspectdf,tidyr,stringr, stringi,DT)
+pacman::p_load(caret,modelr)
+pacman::p_load(mlbench,mplot)
+pacman::p_load(tidymodels,glmx)
+pacman::p_load(skimr,vip,yardstick,ranger,kknn,funModeling,Hmisc)
+pacman::p_load(ggplot2,ggpubr,ggthemes,gridExtra,scales)
+pacman::p_load(viridis,hrbrthemes)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+
+
+
+\newpage
+
+ 
+
+
+### 1. Introduction
+
+
+
+High-dimensional data presents a paradox: while it confounds human cognitive faculties, it offers rich material for machine learning algorithms, often at the expense of interpretability. To tackle this, the project explores mushroom edibility classification through two distinct paradigms: direct data visualization and machine-driven analytical visualization. These paradigms diverge in two key aspects: speed of analysis and interpretability. Direct data visualization relies on innate human pattern recognition abilities but is limited in scalability. Conversely, machine-driven visualization allows for rapid, scalable analysis but may compromise on interpretability. This project aims to weigh the pros and cons of each approach and scrutinize how human cognition fares in comparison to algorithmic computations.
+
+> While this project focuses primarily on visualization techniques for mushroom edibility, it's worth considering the broader questions surrounding human versus machine analysis. For instance, could a mycelium computer outperform a traditional silicon-based one, or is human thought inherently more nuanced than algorithmic computations? Though outside the scope of this research, these thoughts illuminate the tension between human cognition and machine learning, particularly in the context of text and image classification through large language models and computer vision algorithms. These questions underline the complexities and ethical considerations involved in data science projects that strive for both speed and interpretability.
+
+
+---
+
+### 2. Data Source
+
+
+
+The project leverages two distinct mushroom datasets, each catering to a different visualization paradigm, to dissect edibility classification.
+
+- **Primary Dataset**: This dataset consists of 177 observations featuring 24 nominal and metrical variables such as `cap.size` and `cap.shape`. Sourced from a textbook, it is less structured, with single cells containing multiple values and missing entries. These irregularities pose challenges for both visualization approaches and machine learning algorithms (Wagner et al., 2023).
+
+- **Secondary Dataset**: Comprising 61,069 observations across 16 variables (Wagner et al., 2023). It is well-structured, thus ideal for machine learning and subsequent analytical visualizations. The distribution shape is similar to the primary data, with both datasets having roughly 44.5% edible and 55.5% poisonous mushrooms. This indicates that while the raw counts differ, the relative proportions of edible and poisonous mushrooms are similar in both datasets.  
+
+- **Significance for Visualization**: Each dataset serves a unique purpose in the dual approach to visualization. The secondary dataset, with its structured format, is primed for machine-driven analysis and performance visualization. In contrast, the primary dataset requires extensive data cleaning and transformation to be compatible with both human and machine analysis.
+
+<i class="fas fa-clipboard-list"></i> 
+Data Source: [Secondary Mushroom Dataset (Wagner et al., 2023)](https://archive.ics.uci.edu/dataset/848/secondary+mushroom+dataset)
+
+
+\newpage 
+
+---
+
+
+
+## 3. Data Preparation
+
+
+To ensure that the datasets are primed for advanced analysis and machine learning algorithms, both primary and secondary datasets underwent rigorous data cleaning and transformation processes.
+
+#### Primary Dataset
+
+- **Missing Values**: Columns with missing values exceeding a threshold of 25% were omitted. The threshold was set at 25% to balance the trade-off between data integrity and usability.
+  
+- **Range Variables**: The variables `cap.size`, `stem.height`, and `stem.width` were decomposed into `min` and `max` components.
+  
+- **Standardization**: All numeric variables were standardized to a common unit, millimeters (mm).
+  
+- **Imputation**: Specific columns, such as `Cap.surface`, had missing values imputed with the mode.
+  
+- **One-hot Encoding**: Categorical variables underwent one-hot encoding, excluding unique identifiers and the target variable for machine learning tasks. The engineered variables were given distinct names to avoid confusion with the original variables.
+
+
+#### Secondary Dataset
+
+Unlike the primary dataset, the secondary dataset did not contain any missing values, thus simplifying the data preparation process.
+
+- **Standardization**: Numeric variables were standardized to millimeters (mm).
+  
+- **One-hot Encoding**: Similar to the primary dataset, categorical variables were one-hot encoded.
+
+
+The objective of these preparations is to create cleaned, structured datasets optimized for future analyses, visualizations, and machine learning tasks.
+
+
+
+```{r warning=FALSE, include=FALSE}
+# Load data
+mushroom_1 <- read.csv("MushroomDataset/primary_data.csv", sep = ";", header = TRUE, na.strings = c("", "NA"))
+
+# head(mushroom_1)
+```
+
+
+```{r warning=FALSE, include=FALSE}
+# Load data
+mushroom_2 <- read.csv("files/SecondaryData/secondary_data_no_miss.csv", sep = ";", header = TRUE, na.strings = c("", "NA"))
+# head(mushroom_2)
+```
+
+```{r warning=FALSE, include=FALSE}
+str(mushroom_1)
+```
+
+```{r warning=FALSE, include=FALSE}
+table(mushroom_1$class)
+table(mushroom_2$class)
+```
+
+```{r warning=FALSE, include=FALSE}
+# Check for missing values
+mushroom_1 %>% inspectdf::inspect_na()
+mushroom_2 %>% inspectdf::inspect_na()
+```
+
+
+```{r warning=FALSE, include=FALSE}
+# remove columns with missing values over 25%
+
+# Set the threshold for missing values (25% in this case)
+missing_threshold <- nrow(mushroom_1) * 0.25
+
+# Remove columns with more missing values than the threshold
+mushroom_1_cleaned <- mushroom_1 %>%
+  select(-where(~sum(is.na(.)) > missing_threshold))
+
+# View the structure of the cleaned dataset
+str(mushroom_1_cleaned)
+
+```
+
+```{r warning=FALSE, include=FALSE}
+# Check for missing values in the dataset
+missing_values <- sapply(mushroom_1_cleaned, function(x) sum(is.na(x)))
+# missing_values
+```
+
+```{r warning=FALSE, include=FALSE}
+
+
+# Define a function to impute missing values with mode
+impute_mode <- function(x) {
+  mode_val <- as.character(sort(table(x), decreasing = TRUE)[1])
+  x[is.na(x)] <- mode_val
+  return(x)
+}
+
+# Impute missing values in the specified columns
+mushroom_1_cleaned <- mushroom_1_cleaned %>%
+  mutate(
+    `Cap.surface` = impute_mode(`Cap.surface`),
+    `gill.attachment` = impute_mode(`gill.attachment`),
+    `ring.type` = impute_mode(`ring.type`)
+  )
+```
+
+
+```{r warning=FALSE, include=FALSE}
+mushroom_1 <- mushroom_1_cleaned
+```
+
+
+```{r warning=FALSE, include=FALSE}
+unique(mushroom_1$name)
+# dim(mushroom_1)
+```
+
+
+```{r warning=FALSE, include=FALSE}
+# Transform cap.size column
+mushroom_1 <- mushroom_1 %>%
+  mutate(
+    cap.diameter_min = sapply(strsplit(cap.diameter, ","), function(x) as.numeric(gsub("\\[|\\]|\\s*", "", x))[1]),
+    cap.diameter_max = sapply(strsplit(cap.diameter, ","), function(x) as.numeric(gsub("\\[|\\]|\\s*", "", x))[2])
+  ) %>%
+  select(-cap.diameter)  # Drop the original cap.size column
+
+# Transform stem.height column
+mushroom_1 <- mushroom_1 %>%
+  mutate(
+    stem.height_min = sapply(strsplit(stem.height, ","), function(x) as.numeric(gsub("\\[|\\]|\\s*", "", x))[1]),
+    stem.height_max = sapply(strsplit(stem.height, ","), function(x) as.numeric(gsub("\\[|\\]|\\s*", "", x))[2])
+  ) %>%
+  select(-stem.height)  # Drop the original stem.height column
+
+# Transform stem.width column
+mushroom_1 <- mushroom_1 %>%
+  mutate(
+    stem.width_min = sapply(strsplit(stem.width, ","), function(x) as.numeric(gsub("\\[|\\]|\\s*", "", x))[1]),
+    stem.width_max = sapply(strsplit(stem.width, ","), function(x) as.numeric(gsub("\\[|\\]|\\s*", "", x))[2])
+  ) %>%
+  select(-stem.width)  # Drop the original stem.width column
+
+```
+
+
+```{r warning=FALSE, include=FALSE}
+
+mushroom_1$cap.diameter_min <- mushroom_1$cap.diameter_min * 10
+mushroom_1$cap.diameter_max <- mushroom_1$cap.diameter_max * 10
+mushroom_1$stem.height_min <- mushroom_1$stem.height_min * 10
+mushroom_1$stem.height_max <- mushroom_1$stem.height_max * 10
+
+
+# Standardize all numerical columns
+mushroom_1[, c("cap.diameter_min", "cap.diameter_max","stem.height_min","stem.height_max", "stem.width_min","stem.width_max")] <- scale(mushroom_1[, c("cap.diameter_min", "cap.diameter_max","stem.height_min","stem.height_max", "stem.width_min","stem.width_max")])
+
+```
+
+```{r warning=FALSE, include=FALSE}
+# Print the column names
+names(mushroom_1)
+str(mushroom_1)
+```
+
+
+  
+```{r warning=FALSE, include=FALSE}
+pacman::p_load(fastDummies)
+
+
+# List of categorical columns for one-hot encoding
+categorical_columns <- c(
+  "cap.shape",
+  "Cap.surface",
+  "cap.color",
+  "does.bruise.or.bleed",
+  "gill.attachment",
+  "gill.spacing",
+  "gill.color",
+  "stem.root",
+  "stem.surface",
+  "stem.color",
+  "veil.type",
+  "veil.color",
+  "has.ring",
+  "ring.type",
+  "Spore.print.color",
+  "habitat",
+  "season",
+  "family"
+)
+
+# Perform one-hot encoding with distinct names
+mushroom_1_encoded <- dummy_cols(mushroom_1, select_columns = categorical_columns, remove_selected_columns = TRUE)
+
+```
+
+
+
+```{r warning=FALSE, include=FALSE}
+# View the structure of the encoded dataset
+str(mushroom_1_encoded)
+# dim(mushroom_1_encoded)
+colnames(mushroom_1_encoded)
+```
+
+
+```{r warning=FALSE, include=FALSE}
+# Convert "cap-diameter" from cm to mm
+mushroom_2$cap.diameter <- mushroom_2$cap.diameter * 10
+
+# Convert "stem-height" from cm to mm
+mushroom_2$stem.height <- mushroom_2$stem.height * 10
+
+
+# Standardize all numerical columns
+mushroom_2[, c("cap.diameter", "stem.height", "stem.width")] <- scale(mushroom_2[, c("cap.diameter", "stem.height", "stem.width")])
+
+```
+
+```{r warning=FALSE, include=FALSE}
+str(mushroom_2)
+```
+
+```{r warning=FALSE, include=FALSE}
+names(mushroom_2)
+```
+
+```{r warning=FALSE, include=FALSE}
+
+
+# List of categorical columns for one-hot encoding
+categorical_columns_mushroom_2 <- c(
+  "cap.shape",
+  "cap.surface",
+  "cap.color",
+  "does.bruise.or.bleed",
+  "gill.attachment",
+  "gill.spacing",
+  "gill.color",
+  "stem.color",
+  "has.ring",
+  "ring.type",
+  "habitat",
+  "season"
+)
+
+# Perform one-hot encoding with distinct names for mushroom_2
+mushroom_2_encoded <- dummy_cols(mushroom_2, select_columns = categorical_columns_mushroom_2, remove_selected_columns = TRUE)
+```
+
+```{r warning=FALSE, include=FALSE}
+str(mushroom_2_encoded)
+```
+
+---
+
+## 4. Project Aims
+
+This section delineates not only the technical ambit but also the social and ethical facets integral to the study.
+
+#### Objective Hierarchy
+- **Fundamental**: Evaluate variables contributing to mushroom edibility through statistical mapping and relational analysis.
+- **Intermediate**: Perform a comparative analysis of machine learning algorithms and data visualization methodologies.
+- **Comprehensive**: Investigate machine learning efficacy vis-à-vis human intuition and scrutinize ethical ramifications.
+
+\newpage 
+
+#### Scope and Methodologies
+- The project is circumscribed by its focus on data visualization and machine learning, predominantly utilizing Python or R libraries for these tasks.
+
+#### Success Indicators
+- Algorithmic accuracy in edibility classification and the interpretability of visual elements will serve as performance metrics.
+
+#### Ethical and Practical Impediments
+- **Computational Strain**: Handling the complexity arising from high-dimensional data.
+- **Ethical Constraints**: Emphasis on the significance of false positives and negatives, owing to their potential harmful effects, particularly in edibility determination.
+
+
+
+
+
+
+---
+
+```{r warning=FALSE, include=FALSE}
+# Decision tree
+pacman::p_load(rpart.plot)
+
+# Data manipulation
+pacman::p_load(rgl, rattle, mice, dplyr)
+
+# Plotting
+pacman::p_load(viridis, hrbrthemes, ggplot2, heplots, forcats)
+pacman::p_load(beeswarm, quantmod, reshape2, plyr, scales, viridis, zoo)
+pacman::p_load(kableExtra)
+```
+
+
+## 5. Data Exploration
+
+
+This section engages in an initial assessment of the data, employing both statistical and visual techniques. It serves as a precursor to the in-depth analysis proposed in Section 4.
+
+
+```{r warning=FALSE, include=FALSE}
+# skim(mushroom_1)
+```
+
+
+```{r warning=FALSE, include=FALSE}
+# skim(mushroom_2)
+```
+
+#### 1. Bar Plots for Class Distribution
+
+To understand the distribution of classes (edible, poisonous), bar plots have been generated for both the primary and secondary datasets. These plots provide a baseline view of class distribution within the datasets.
+
+```{r warning=FALSE, echo=FALSE}
+# Bar Plot for Class Distribution with Custom Labels
+
+# For the first dataset (Primary)
+eat1 <- ggplot(mushroom_1, aes(x=class)) +
+  geom_bar(fill = "#244e69") +
+  ggtitle("Primary - Distribution of Mushroom Classes") +
+  xlab("Class") +
+  ylab("Count") +
+  scale_x_discrete(labels = c("e" = "edible (e)", "p" = "poisonous (p)")) +
+  theme_minimal()
+
+# For the second dataset (Secondary)
+eat2 <- ggplot(mushroom_2, aes(x=class)) +
+  geom_bar(fill = "#1c2c6a") +
+  ggtitle("Secondary - Distribution of Mushroom Classes") +
+  xlab("Class") +
+  ylab("Count") +
+  scale_x_discrete(labels = c("e" = "edible (e)", "p" = "poisonous (p)")) +
+  theme_minimal()
+
+# Combine the two plots vertically
+grid.arrange(eat1, eat2, nrow=2)
+```
+
+**Figure 1.** Barplot for class distribution in primary and secondary dataset.
+
+
+
+
+```{r warning=FALSE, include=FALSE}
+# Load libraries
+library(hrbrthemes)
+library(viridis)
+```
+
+
+```{r warning=FALSE, echo=FALSE}
+# Define custom labels for habitat
+custom_labels <- c("grasses" = "g", "leaves" = "l", "meadows" = "m", "paths" = "p", "heaths" = "h", "urban" = "u", "waste" = "w", "woods" = "d")
+custom_labels_2 <- c("spring" = "s", "summer" = "u", "autumn" = "a", "winter" = "w")
+
+# Create the bar plot for habitat
+habitat_plot <- ggplot(mushroom_2, aes(x = habitat)) +
+  geom_bar(aes(fill = habitat), position = "dodge") +
+  scale_fill_manual(name = "Habitat", 
+                    values = viridis(length(custom_labels)),
+                    breaks = custom_labels,
+                    labels = names(custom_labels)) +
+  scale_x_discrete(labels = names(custom_labels)) +
+  labs(x = 'Habitat', y = 'Frequency', title = 'Distribution Across Habitats') +
+  theme_minimal()
+
+# Determine the y-axis limit
+y_limit <- max(table(mushroom_2$habitat))
+
+# Set y-axis limit for habitat plot
+habitat_plot <- habitat_plot + ylim(0, y_limit)
+
+# Create the bar plot for season
+season_plot <- ggplot(mushroom_2, aes(x = season)) +
+  geom_bar(aes(fill = season), position = "dodge") +
+  scale_fill_manual(name = "Season", 
+                    values = viridis(length(custom_labels_2)),
+                    breaks = custom_labels_2,
+                    labels = names(custom_labels_2)) +
+  scale_x_discrete(labels = names(custom_labels_2)) +
+  labs(x = 'Season', y = 'Frequency', title = 'Distribution Across Seasons') +
+  theme_minimal()
+
+# Arrange the plots side by side using grid.arrange
+grid.arrange(habitat_plot, season_plot, nrow = 2)
+
+```
+
+**Figure 2.** Distribution across habitat and season for the secondary dataset, these are the environmental attributes of the mushroom data.
+
+
+
+```{r warning=FALSE, echo=FALSE}
+
+# Filter and convert data to long format
+filtered_data <- mushroom_2 %>%
+  select(does.bruise.or.bleed, has.ring)
+
+long_data <- tidyr::gather(filtered_data, key = "variable", value = "value")
+
+# Create the bar plot for does.bruise.or.bleed
+bi_1 <- ggplot(long_data %>% filter(variable == "does.bruise.or.bleed"), aes(x = value)) +
+  geom_bar(fill = "#244e69", position = "dodge") +
+  labs(x = 'Value', y = 'Frequency') +
+  scale_x_discrete(labels = c("f" = "No (f)", "t" = "Yes (t)")) +
+  theme_minimal() +
+  ggtitle("Does Bruise or Bleed")
+
+# Create the bar plot for has.ring
+bi_2 <- ggplot(long_data %>% filter(variable == "has.ring"), aes(x = value)) +
+  geom_bar(fill = "#1c2c6a", position = "dodge") +
+  labs(x = 'Value', y = 'Frequency') +
+  scale_x_discrete(labels = c("f" = "No (f)", "t" = "Yes (t)")) +
+  theme_minimal() +
+  ggtitle("Has Ring")
+
+# Arrange the plots vertically
+grid.arrange(bi_1, bi_2, nrow=2)
+
+
+```
+
+**Figure 3.** Binary morphological attributes for the secondary dataset.
+
+
+
+#### 2. Heatmap for Attribute Correlations
+
+A heatmap has been constructed to visualize the correlations between continuous features in the secondary dataset. This visualization aids in understanding how numerical attributes relate to each other.
+
+Based on the correlation matrix and heatmap, it is observed that "cap.diameter" and "stem.width" have a strong positive correlation, suggesting that they tend to increase together. Additionally, "cap.diameter" and "stem.height" display a moderate positive correlation.
+
+
+
+```{r warning=FALSE, echo=FALSE}
+
+library(corrplot)
+
+# Calculate correlation matrix
+cor_matrix <- cor(mushroom_2[, c("cap.diameter","stem.height","stem.width")])
+
+# Create Heatmap
+
+corrplot(cor_matrix, method = "color", tl.col = "black", cl.col = "black")
+```
+
+**Figure 4.** Heatmap for attribute correlations in the secondary dataset.
+
+
+```{r warning=FALSE, include=FALSE}
+cor_matrix
+str(mushroom_2)
+```
+
+
+
+#### 3. Feature Exploration
+
+
+
+```{r warning=FALSE, message=FALSE, include=FALSE}
+# install.packages("mlr3")
+pacman::p_load(mlr3, mlr3learners, mlr3viz, mlr3filters, FSelectorRcpp, mlr3pipelines)
+pacman::p_load(data.table)
+```
+
+
+```{r warning=FALSE, include=FALSE}
+# Setting the seed for reproducibility
+set.seed(999)
+
+# Convert target column to factor
+mushroom_2$class <- as.factor(mushroom_2$class)
+
+# Create Task object
+mushroom_task <- TaskClassif$new(id = "mushroom_2", backend = mushroom_2, target = "class")
+```
+
+```{r warning=FALSE, include=FALSE}
+# Extract numerical data (if any)
+numerical_data <- data.frame(Filter(is.numeric, mushroom_2))
+
+# Perform PCA
+pca_result <- prcomp(numerical_data, scale. = TRUE)
+```
+
+```{r warning=FALSE, include=FALSE}
+# Create a data frame for plotting
+pca_df <- data.frame(pca_result$x[,1:2])
+pca_df$class <- mushroom_2$class
+
+```
+
+```{r warning=FALSE, include=FALSE}
+
+head(mushroom_2)
+```
+
+
+```{r warning=FALSE, include=FALSE}
+mushroom_fac <- mushroom_2
+for (col in names(mushroom_fac)) {
+  if (is.character(mushroom_fac[[col]])) {
+    mushroom_fac[[col]] <- as.factor(mushroom_fac[[col]])
+  }
+}
+
+str(mushroom_fac)
+
+```
+
+
+
+```{r warning=FALSE, include=FALSE}
+# Create Task object using the updated mushroom_fac data frame
+mushroom_task <- TaskClassif$new(id = "mushroom_fac", backend = mushroom_fac, target = "class")
+
+# Create a new filter method based on Information Gain
+filter_importance <- flt("information_gain")
+
+# Calculate feature importance
+mushroom_feature_importance <- filter_importance$calculate(mushroom_task)
+
+```
+
+
+```{r warning=FALSE, include=FALSE}
+# Convert the feature importance to a data.table
+importance_data_table <- as.data.table(mushroom_feature_importance)
+```
+
+```{r warning=FALSE, echo= FALSE}
+# Save the PCA plot to an object
+pca_plot <- ggplot(data = pca_df, aes(x = PC1, y = PC2, color = class)) +
+  geom_point() +
+  scale_color_manual(values=c("#f05b20", "black")) +
+  labs(title = "PCA Plot of Secondary Data")
+
+# Save the Feature Importance plot to an object
+feature_importance_plot <- autoplot(mushroom_feature_importance) +
+  labs(title = "Feature Importance Plot")
+
+
+
+# Arrange the two plots side by side
+grid.arrange(pca_plot, feature_importance_plot, ncol=2)
+
+```
+
+**Figure 5.** PCA plot and feature importance plot for the secondary dataset.
+
+
+
+The Principal Component Analysis (PCA) plot visualizes the distribution of the mushroom dataset in a new feature space defined by principal components. These principal components are linear combinations of the original features, selected to capture the most variance in the data. In this specific plot, the first two principal components (PC1 and PC2) are displayed. Points in the plot represent individual mushroom samples and are colored based on their classes (edible or poisonous). A well-separated PCA plot could imply that the classes are distinguishable based on the derived principal components, which in turn suggests that a simpler model might suffice for classification.
+
+
+The feature importance plot provides insights into which features are most informative for predicting the target variable, in this case, whether a mushroom is edible or poisonous. The method used here for feature selection is Information Gain, which quantifies how well a feature discriminates between the classes of the target variable. Features at the top of the plot are more important for classification than those at the bottom. In a machine learning pipeline, less important features might be removed to simplify the model without sacrificing performance significantly.
+
+Both these plots serve complementary roles. While the PCA plot helps in reducing the dimensionality and visualizing the entire dataset, the feature importance plot helps to identify the most important individual features for classification. 
+
+
+
+```{r warning=FALSE, include=FALSE}
+str(mushroom_1_encoded)
+```
+
+```{r warning=FALSE, include=FALSE}
+# Load required package
+pacman::p_load(Rtsne)
+
+# Data Cleaning
+mushroom_cleaned <- na.omit(mushroom_1_encoded)
+
+# t-SNE
+tsne <- Rtsne(mushroom_cleaned[, -1]) 
+
+# Data Frame Preparation
+tsne_data <- data.frame(tsne$Y)
+colnames(tsne_data) <- c("X", "Y")
+tsne_data$class <- mushroom_cleaned$class
+```
+  
+
+
+```{r warning=FALSE, include=FALSE}
+str(mushroom_2_encoded)
+```
+```{r warning=FALSE, include=FALSE}
+# Remove duplicate rows
+mushroom_2_unique <- unique(mushroom_2_encoded)
+
+# Perform t-SNE
+tsne_2 <- Rtsne(mushroom_2_unique[, -1])
+
+# Prepare Data Frame
+tsne_data_2 <- data.frame(tsne_2$Y)
+colnames(tsne_data_2) <- c("X", "Y")
+tsne_data_2$class <- mushroom_2_unique$class
+```
+
+
+```{r warning=FALSE, echo=FALSE}
+# Plotting
+tsne_1_p <- ggplot(tsne_data, aes(x=X, y=Y, color=class)) +
+  geom_point(size=1) +
+  scale_color_manual(values=c("#f05b20", "black")) +
+  ggtitle("t-SNE Plot") +
+  xlab("t-SNE Dimension 1") +
+  ylab("t-SNE Dimension 2")+
+  theme_minimal()
+
+
+tsne_2_p <- ggplot(tsne_data_2, aes(x=X, y=Y, color=class)) +
+  geom_point(size=1) +
+  scale_color_manual(values=c("#f05b20", "black")) +
+  ggtitle("t-SNE Plot") +
+  xlab("t-SNE Dimension 1") +
+  ylab("t-SNE Dimension 2")+
+  theme_minimal()
+
+grid.arrange(tsne_1_p, tsne_2_p, nrow=2)
+```
+
+**Figure 6.** The t-SNE plot for the primary and secondary datasets.
+
+To further explore features and patterns within the datasets, dimensionality reduction techniques like t-SNE have been applied. t-SNE plots are used to visualize the data in a reduced-dimensional space and identify potential clusters or separations among data points. There are visible clusters in the t-SNE plot for the secondary dataset. However, the t-SNE plot for the primary dataset does not show any clear clusters. This could be because the primary dataset is smaller and has fewer features than the secondary dataset.
+
+
+
+
+<div class="boxy boxy-info boxy-comments">
+**Discuss:**
+
+Preliminary data exploration leverages descriptive statistics and visual elements:
+
+- **Descriptive Statistics**: Primary and secondary datasets  contain complete character variables, while some missing values exist in numeric variables of primary dataset.
+
+- **Visual Elements**: Bar plots and heatmaps indicate class distribution and attribute correlations.
+
+- **Observations**: High correlation between `cap.diameter` and `stem.width` suggests they may have a combined influence on mushroom edibility.
+    
+- **Feature Exploration**:Implement dimensionality reduction via t-SNE and temporal comparison with older datasets for a historical perspective.
+</div>
+
+
+\newpage
+
+
+---
+
+## 6. References
+
+
+Wagner, D., Heider, D., & Hattab, G. (2021). Mushroom data creation, curation, and simulation to support classification tasks. *Scientific Reports, 11*(1), 8134-12. https://doi.org/10.1038/s41598-021-87602-3
+
+Wagner, D., Heider, D., and Hattab, G. (2023). Secondary Mushroom Dataset. UCI Machine Learning Repository. https://doi.org/10.24432/C5FP5Q.
+
+
+
+
+
+
+
